@@ -1,96 +1,110 @@
-import sys
+import random
 
-def sierpinski_triangle(n) :
-    y = n - 1
-    while (y >= 0) :
-        # printing space till
-        # the value of y
-        i = 0
-        while (i < y ):
-            print(" " ,end="")
-            i = i + 1
-        # printing '*'
-        x = 0
-        while (x + y < n ):
-            # printing '*' at the appropriate
-            # position is done by the and
-            # value of x and y wherever value
-            # is 0 we have printed '*'
-            if ((x & y) != 0) :
-                print(" ", end = " ")
-            else :
-                print("* ", end = "")
-            x =x + 1
-        print()
-        y = y - 1
+def print_board(board):
+    """
+    Выводит текущее состояние доски 3x3.
+    """
+    for row in board:
+        print(" | ".join(row))
+        print("-" * 9)
 
-def setTowers(total_disks):
-    global TOWERS
-    global TOTAL_DISKS
-    TOTAL_DISKS = total_disks
-    # Populate Tower A:
-    TOWERS = {'A': list(reversed(range(1, TOTAL_DISKS + 1))),
-             'B': [],
-             'C': []}
 
-def printDisk(diskNum):
-    # Print a single disk of width diskNum.
-    global TOTAL_DISKS
-    emptySpace = ' ' * (TOTAL_DISKS - diskNum)
-    if diskNum == 0:
-        # Just draw the pole.
-        sys.stdout.write(emptySpace + '||' + emptySpace)
-    else:
-        # Draw the disk.
-        diskSpace = '@' * diskNum
-        diskNumLabel = str(diskNum).rjust(2, '_')
-        sys.stdout.write(emptySpace + diskSpace + diskNumLabel + diskSpace + emptySpace)
+def check_winner(board, player):
+    """
+    Проверяет, есть ли победитель на доске.
+    :param board: Игровое поле
+    :param player: 'X' или 'O'
+    :return: True, если есть победитель, иначе False
+    """
+    # Проверка строк, столбцов и диагоналей
+    for row in board:
+        if all(cell == player for cell in row):
+            return True
 
-def printTowers():
-    global TOWERS
-    global TOTAL_DISKS
-    # Print all three towers.
-    for level in range(TOTAL_DISKS, -1, -1):
-        for tower in (TOWERS['A'], TOWERS['B'], TOWERS['C']):
-            if level >= len(tower):
-                printDisk(0)
+    for col in range(3):
+        if all(board[row][col] == player for row in range(3)):
+            return True
+
+    if all(board[i][i] == player for i in range(3)) or all(board[i][2 - i] == player for i in range(3)):
+        return True
+
+    return False
+
+
+def is_draw(board):
+    """
+    Проверяет, есть ли ничья (все ячейки заняты, и победителя нет).
+    """
+    return all(all(cell != ' ' for cell in row) for row in board)
+
+
+def get_player_move(board):
+    """
+    Запрашивает у игрока ход и возвращает координаты.
+    """
+    while True:
+        try:
+            move = input("Введите ваш ход (строка и столбец от 1 до 3, например, 1 2): ")
+            row, col = map(int, move.split())
+            row -= 1  # Преобразование в индексы от 0 до 2
+            col -= 1
+            if board[row][col] == ' ':
+                return row, col
             else:
-                printDisk(tower[level])
-        sys.stdout.write('\n')
-    # Print the tower labels A, B, and C.
-    emptySpace = ' ' * (TOTAL_DISKS)
-    print('%s A%s%s B%s%s C\n' % (emptySpace, emptySpace, emptySpace, emptySpace, emptySpace))
-
-def moveOneDisk(startTower, endTower):
-    # Move the top disk from startTower to endTower.
-    global TOWERS
-    disk = TOWERS[startTower].pop()
-    TOWERS[endTower].append(disk)
-
-def solve(numberOfDisks, startTower, endTower, tempTower):
-    # Move the top numberOfDisks disks from startTower to endTower.
-    if numberOfDisks == 1:
-        # BASE CASE
-        moveOneDisk(startTower, endTower)
-        printTowers()
-        return
-    else:
-        # RECURSIVE CASE
-        solve(numberOfDisks - 1, startTower, tempTower, endTower)
-        moveOneDisk(startTower, endTower)
-        printTowers()
-        solve(numberOfDisks - 1, tempTower, endTower, startTower)
-        return
+                print("Эта ячейка уже занята. Попробуйте снова.")
+        except (ValueError, IndexError):
+            print("Неверный ввод. Введите два числа от 1 до 3, разделенные пробелом.")
 
 
-option = input('Выберите опцию - T для ханойской башни или S для треугольника Серпинского: ')
-if option == 'T':
-    TOTAL_DISKS = int(input('Выберите число дисков: '))
-    setTowers(TOTAL_DISKS)
-    printTowers()
-    solve(TOTAL_DISKS, 'A', 'B', 'C')
-elif option == 'S':
-    n = int(input('Введите число кратное 2 в диапазоне от 8 до 64: '))
-    sierpinski_triangle(n)
-else:
-    print('Программа завершена')
+def get_computer_move(board):
+    """
+    Компьютер выбирает случайную свободную ячейку.
+    """
+    empty_cells = [(row, col) for row in range(3) for col in range(3) if board[row][col] == ' ']
+    return random.choice(empty_cells)
+
+
+def main():
+    """
+    Основная логика игры.
+    """
+    print("Добро пожаловать в игру Крестики-Нолики!")
+    board = [[' ' for _ in range(3)] for _ in range(3)]  # Пустое игровое поле 3x3
+
+    player_symbol = 'X'
+    computer_symbol = 'O'
+
+    print_board(board)
+
+    while True:
+        # Ход игрока
+        print("\nВаш ход (вы играете за X)")
+        row, col = get_player_move(board)
+        board[row][col] = player_symbol
+        print_board(board)
+
+        if check_winner(board, player_symbol):
+            print("Поздравляем! Вы победили!")
+            break
+
+        if is_draw(board):
+            print("Ничья!")
+            break
+
+        # Ход компьютера
+        print("\nХод компьютера (O)...")
+        row, col = get_computer_move(board)
+        board[row][col] = computer_symbol
+        print_board(board)
+
+        if check_winner(board, computer_symbol):
+            print("Компьютер победил!")
+            break
+
+        if is_draw(board):
+            print("Ничья!")
+            break
+
+
+if __name__ == "__main__":
+    main()
